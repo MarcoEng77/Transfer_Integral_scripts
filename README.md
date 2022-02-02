@@ -1,1 +1,1 @@
-Random Walk on a hypercube edges equipped with Gibbsian of Griffith energy
+Random Walk on a hypercube, edge paths weighted using Griffith energy
