@@ -1,0 +1,1 @@
+Random Walk on a hypercube edges equipped with Gibbsian of Griffith energy
