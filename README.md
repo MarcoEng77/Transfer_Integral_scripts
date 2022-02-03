@@ -1,1 +1,0 @@
-Random Walk on a hypercube, edge paths weighted using Griffith energy

@@ -1,0 +1,94 @@
+// Parameters
+real E = 21e5;
+real nu = 0.28;
+
+real f = 0;
+real shear = -1000;
+real d = 0;
+
+// Mesh
+border C01(t=0, 1){x=0; y=t; label=4;}
+border C02(t=0, 1){x=t; y=1 - t*d; label=3;}
+border C03(t=0, 1){x=1; y=1-d -t; label=2;}
+border C04(t=0, 1){x=1-t; y=-d + d*t ; label=1;}
+
+int n = 10;
+plot(C01(-n) + C02(-n) + C03(-n) + C04(-n) , wait=true);
+
+mesh Th = buildmesh(C01(-n) + C02(-n) + C03(-n) + C04(-n));
+
+plot(Th, wait=true);
+
+// Fespace
+fespace Vh(Th, P2);
+Vh u, v;
+Vh uu, vv;
+
+// Macro
+real sqrt2=sqrt(2.);
+macro epsilon(u1,u2) [dx(u1),dy(u2),(dy(u1)+dx(u2))/sqrt2] //
+// The sqrt2 is because we want: epsilon(u1,u2)'* epsilon(v1,v2) = epsilon(u): epsilon(v)
+macro div(u,v) ( dx(u)+dy(v) ) //
+
+// Problem
+real mu= E/(2*(1+nu));
+real lambda = E*nu/((1+nu)*(1-2*nu));
+
+solve lame([u, v], [uu, vv])
+   = int2d(Th)(
+        lambda * div(u, v) * div(uu, vv)
+      + 2.*mu * ( epsilon(u,v)' * epsilon(uu,vv) )
+   )
+   - int2d(Th)(
+        f*vv
+   )
+   -int1d(Th, 2) (
+   shear*vv
+   )
+   
+   + on(4, u=0, v=0)
+   ;
+
+Vh Sxy;
+
+
+//Stiffness matrix
+
+ varf bid ( [u, v], [uu, vv] ) = int2d(Th)(
+        lambda * div(u, v) * div(uu, vv)
+      + 2.*mu * ( epsilon(u,v)' * epsilon(uu,vv) )
+   )
+ 
+   
+   + on(4, u=0, v=0)
+   ;
+        matrix ad = bid ( Vh, Vh);
+
+
+// Plot
+real coef=100;
+plot([u, v], wait=1, ps="lamevect.eps", coef=coef);
+
+
+// Move mesh
+mesh th1 = movemesh(Th, [x+u*coef, y+v*coef]);
+plot(th1,wait=1,ps="lamedeform.eps");
+
+Sxy = mu*(dy(u)+dx(v)) ; 
+plot(Sxy, wait=1);
+
+
+
+// Output
+real dxmin = u[].min;
+real dymin = v[].min;
+real sheartotal = int1d(Th, 4) (
+   Sxy
+   );
+
+cout << " - dep. max x = "<< dxmin << " y=" << dymin << endl;
+cout << "   dep. (1, 0) = " << u(1, 0) << " " << v(1, 0) << endl;
+cout << "   dep. (1, 1) = " << u(1, 1) << " " << v(1, 1) << endl;
+cout << "   Shear encastre end = " << Sxy(0, 0) <<  endl;
+cout << "   Shear Force = " << sheartotal <<  endl;
+cout << "   Stiffness matrix = " << ad <<  endl;
